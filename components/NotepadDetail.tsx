@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Button } from "./ui/button";
-import { Plus } from "lucide-react";
+import { Copy } from "lucide-react";
 import Link from "next/link";
 import Snippet from "./Snippet";
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/hooks/use-db";
 import React from "react";
 import SnippetForm from "./SnippetForm";
+import { useToast } from "@/components/ui/use-toast";
 
 type NotepadDetailProps = {
   notepadId: string;
@@ -46,6 +47,7 @@ export default function NotepadDetail({ notepadId }: NotepadDetailProps) {
   const { mutateAsync: updateSnippetOrder } = useUpdateSnippetOrder();
   const { mutateAsync: addSnippetOrder } = useAddSnippetOrder();
   const [isUpdating, setIsUpdating] = useState(false);
+  const { toast } = useToast();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -134,6 +136,23 @@ export default function NotepadDetail({ notepadId }: NotepadDetailProps) {
     }
   };
 
+  const handleCopyAll = async () => {
+    if (!snippets.length) return;
+    const markdownContent = snippets.map(s => s.content).join('\n\n---\n\n');
+    try {
+      await navigator.clipboard.writeText(markdownContent);
+      toast({
+        description: "已复制所有笔记内容到剪贴板",
+      });
+    } catch (error) {
+      console.error('Failed to copy content:', error);
+      toast({
+        variant: "destructive",
+        description: "复制失败，请重试",
+      });
+    }
+  };
+
   if (loading || !notepad) {
     return <div className="p-4">Loading snippets...</div>;
   }
@@ -142,6 +161,14 @@ export default function NotepadDetail({ notepadId }: NotepadDetailProps) {
     <div className="p-2">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">{notepad.name}</h2>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleCopyAll}
+          title="复制所有笔记内容"
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
       </div>
       <SnippetForm notepadId={notepadId} className="mb-4" mode="create" />
       <DndContext
